@@ -208,11 +208,106 @@ def live():
 # ============================================================
 # BACKGROUND ANGEL LOGIN
 # ============================================================
+def on_live_data(wsapp, message):
+    try:
+        token = str(message.get("token", ""))
+
+        ltp_raw = message.get("last_traded_price")
+        volume_raw = message.get("volume_trade_for_the_day")
+
+        if ltp_raw is None:
+            return
+
+        ltp = float(ltp_raw) / 100.0
+        volume = int(volume_raw or 0)
+
+        symbol = None
+
+        with LOCK:
+            for sym, tok in FNO_TOKENS.items():
+                if str(tok) == token:
+                    symbol = sym
+                    break
+
+            if symbol:
+                LIVE.setdefault(symbol, {})
+                LIVE[symbol]["ltp"] = ltp
+                LIVE[symbol]["volume"] = volume
+
+        if symbol:
+            print("LIVE:", symbol, "LTP:", ltp, "VOLUME:", volume)
+
+    except Exception as e:
+        print("Live data error:", e)
+
+
+def on_ws_open(wsapp):
+    print("Angel One WebSocket connected")
+
+    tokens = list(FNO_TOKENS.values())
+
+    if not tokens:
+        print("No F&O tokens available")
+        return
+
+    token_list = [{
+        "exchangeType": 2,
+        "tokens": [str(x) for x in tokens]
+    }]
+
+    websocket.subscribe(
+        "foleader",
+        2,
+        token_list
+    )
+
+    print("F&O live subscription started:", len(tokens))
+
+
+def on_ws_error(wsapp, error):
+    print("WebSocket error:", error)
+
+
+def on_ws_close(wsapp):
+    print("Angel One WebSocket closed")
+
+
+def start_live_websocket():
+    global websocket
+
+    load_fno_tokens()
+
+    if not FNO_TOKENS:
+        print("F&O tokens not loaded")
+        return
+
+    auth_token = smart_api.access_token
+    feed_token = smart_api.getfeedToken()
+
+    websocket = SmartWebSocketV2(
+        auth_token,
+        API_KEY,
+        CLIENT_CODE,
+        feed_token
+    )
+
+    websocket.on_open = on_ws_open
+    websocket.on_data = on_live_data
+    websocket.on_error = on_ws_error
+    websocket.on_close = on_ws_close
+
+    print("Starting Angel One WebSocket...")
+    websocket.connect()
+
+
 def backend_worker():
     while True:
         try:
             if smart_api is None:
-                angel_login()
+                if angel_login():
+                    start_live_websocket()
+            elif websocket is None:
+                start_live_websocket()
 
         except Exception as e:
             print("Worker error:", e)
@@ -224,7 +319,6 @@ threading.Thread(
     target=backend_worker,
     daemon=True
 ).start()
-
 
 # ============================================================
 # RENDER PORT
