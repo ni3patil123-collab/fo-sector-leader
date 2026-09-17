@@ -59,7 +59,50 @@ INSTRUMENT_URL = "https://margincalculator.angelone.in/OpenAPI_File/files/OpenAP
 FNO_TOKENS = {}
 RVOL_CACHE = {}
 RVOL_LOCK = threading.Lock()
+def fetch_20d_rvol_baseline(symbol, token):
+    try:
+        end = now_ist()
+        start = end.replace(
+            hour=9, minute=15, second=0, microsecond=0
+        )
 
+        result = smart_api.getCandleData({
+            "exchange": "NFO",
+            "symboltoken": str(token),
+            "interval": "FIVE_MINUTE",
+            "fromdate": start.strftime("%Y-%m-%d 09:15"),
+            "todate": end.strftime("%Y-%m-%d %H:%M")
+        })
+
+        if not result or not result.get("status"):
+            print("RVOL history failed:", symbol)
+            return
+
+        rows = result.get("data") or []
+
+        baseline = {}
+
+        for row in rows:
+            if len(row) < 6:
+                continue
+
+            ts = datetime.fromisoformat(
+                str(row[0]).replace("Z", "+00:00")
+            ).astimezone(IST)
+
+            key = f"{ts.hour:02d}:{(ts.minute // 5) * 5:02d}"
+            volume = float(row[5] or 0)
+
+            baseline.setdefault(key, 0)
+            baseline[key] += volume
+
+        with RVOL_LOCK:
+            RVOL_CACHE[symbol] = baseline
+
+        print("RVOL baseline ready:", symbol)
+
+    except Exception as e:
+        print("RVOL baseline error:", symbol, e)
 def now_ist():
     return datetime.now(IST)
 
