@@ -82,21 +82,84 @@ def market_status():
 
 def load_fno_tokens():
     global FNO_TOKENS
+
     try:
         print("Loading Angel One F&O instrument master...")
+
         response = requests.get(INSTRUMENT_URL, timeout=30)
+        response.raise_for_status()
         data = response.json()
-        wanted = {s.upper() for stocks in SECTORS.values() for s in stocks}
-        found = {}
+
+        wanted = {
+            s.upper()
+            for stocks in SECTORS.values()
+            for s in stocks
+        }
+
+        today = now_ist().date()
+        candidates = {}
+
         for item in data:
-            if item.get("exch_seg") != "NFO":
+            if str(item.get("exch_seg", "")).upper() != "NFO":
                 continue
-            name = str(item.get("name", "")).upper()
-            if name in wanted:
-                found[name] = str(item.get("token"))
+
+            if str(item.get("instrumenttype", "")).upper() != "FUTSTK":
+                continue
+
+            name = str(item.get("name", "")).upper().strip()
+
+            if name not in wanted:
+                continue
+
+            expiry_text = str(item.get("expiry", "")).strip()
+
+            if not expiry_text:
+                continue
+
+            try:
+                expiry = datetime.strptime(
+                    expiry_text, "%d%b%Y"
+                ).date()
+            except ValueError:
+                continue
+
+            if expiry < today:
+                continue
+
+            token = str(item.get("token", "")).strip()
+
+            if not token:
+                continue
+
+            # Keep the nearest valid FUTSTK expiry
+            if (
+                name not in candidates
+                or expiry < candidates[name]["expiry"]
+            ):
+                candidates[name] = {
+                    "token": token,
+                    "expiry": expiry
+                }
+
+        found = {
+            name: item["token"]
+            for name, item in candidates.items()
+        }
+
         with LOCK:
             FNO_TOKENS = found
-        print("F&O tokens loaded:", len(FNO_TOKENS))
+
+        print("F&O FUTSTK tokens loaded:", len(FNO_TOKENS))
+
+        for name, item in sorted(candidates.items()):
+            print(
+                "TOKEN:",
+                name,
+                item["token"],
+                "EXPIRY:",
+                item["expiry"]
+            )
+
     except Exception as e:
         print("F&O token loading error:", e)
 
