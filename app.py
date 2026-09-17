@@ -50,6 +50,8 @@ SECTORS = {
 # ============================================================
 # LIVE DATA CACHE
 # ============================================================
+# LIVE DATA CACHE
+# ============================================================
 LIVE = {}
 LOCK = threading.Lock()
 
@@ -57,6 +59,7 @@ smart_api = None
 websocket = None
 INSTRUMENT_URL = "https://margincalculator.angelone.in/OpenAPI_File/files/OpenAPIScripMaster.json"
 FNO_TOKENS = {}
+
 
 def now_ist():
     return datetime.now(IST)
@@ -78,7 +81,8 @@ def market_status():
 
     return "CLOSED"
 
-    def load_fno_tokens():
+
+def load_fno_tokens():
     global FNO_TOKENS
 
     try:
@@ -102,10 +106,10 @@ def market_status():
         with LOCK:
             FNO_TOKENS = found
 
-                print("F&O tokens loaded:", len(FNO_TOKENS))
+        print("F&O tokens loaded:", len(FNO_TOKENS))
 
-        except Exception as e:
-                print("F&O token loading error:", e)
+    except Exception as e:
+        print("F&O token loading error:", e)
 # ============================================================
 # ANGEL ONE LOGIN
 # ============================================================
