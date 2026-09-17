@@ -134,6 +134,13 @@ def angel_login():
             return False
 
         print("Angel One login successful")
+
+        auth_token = session["data"]["jwtToken"]
+        feed_token = smart_api.getfeedToken()
+
+        print("Angel One auth token received")
+        print("Angel One feed token received")
+
         return True
 
     except Exception as e:
