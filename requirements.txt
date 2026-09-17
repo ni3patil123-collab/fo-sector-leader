@@ -1,0 +1,6 @@
+Flask
+flask-cors
+smartapi-python
+pyotp
+pandas
+requests
