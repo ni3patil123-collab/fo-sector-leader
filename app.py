@@ -57,7 +57,8 @@ smart_api = None
 websocket = None
 INSTRUMENT_URL = "https://margincalculator.angelone.in/OpenAPI_File/files/OpenAPIScripMaster.json"
 FNO_TOKENS = {}
-
+RVOL_CACHE = {}
+RVOL_LOCK = threading.Lock()
 
 def now_ist():
     return datetime.now(IST)
