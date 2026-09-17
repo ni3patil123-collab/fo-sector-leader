@@ -62,9 +62,7 @@ RVOL_LOCK = threading.Lock()
 def fetch_20d_rvol_baseline(symbol, token):
     try:
         end = now_ist()
-        start = end.replace(
-            hour=9, minute=15, second=0, microsecond=0
-        )
+        start = end - timedelta(days=35)
 
         result = smart_api.getCandleData({
             "exchange": "NFO",
@@ -79,8 +77,7 @@ def fetch_20d_rvol_baseline(symbol, token):
             return
 
         rows = result.get("data") or []
-
-        baseline = {}
+        days = {}
 
         for row in rows:
             if len(row) < 6:
@@ -88,21 +85,92 @@ def fetch_20d_rvol_baseline(symbol, token):
 
             ts = datetime.fromisoformat(
                 str(row[0]).replace("Z", "+00:00")
-            ).astimezone(IST)
+            )
+
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=IST)
+            else:
+                ts = ts.astimezone(IST)
+
+            if ts.weekday() >= 5:
+                continue
+
+            if ts.hour < 9 or (
+                ts.hour == 9 and ts.minute < 15
+            ):
+                continue
 
             key = f"{ts.hour:02d}:{(ts.minute // 5) * 5:02d}"
-            volume = float(row[5] or 0)
+            day = ts.date()
+            vol = float(row[5] or 0)
 
-            baseline.setdefault(key, 0)
-            baseline[key] += volume
+            days.setdefault(day, [])
+            days[day].append((key, vol))
+
+        today = now_ist().date()
+
+        old_days = sorted(
+            d for d in days if d < today
+        )[-20:]
+
+        if len(old_days) < 20:
+            print(
+                "RVOL needs 20 days:",
+                symbol,
+                len(old_days)
+            )
+            return
+
+        baseline = {}
+
+        for day in old_days:
+            running = 0
+
+            for key, vol in sorted(days[day]):
+                running += vol
+                days[day] = [
+                    x for x in days[day]
+                    if x[0] != key
+                ]
+                days[day].append((key, running))
+
+        slots = set()
+
+        for day in old_days:
+            slots.update(
+                key for key, _ in days[day]
+            )
+
+        for key in slots:
+            values = []
+
+            for day in old_days:
+                for k, value in days[day]:
+                    if k == key:
+                        values.append(value)
+                        break
+
+            if len(values) >= 15:
+                baseline[key] = (
+                    sum(values) / len(values)
+                )
 
         with RVOL_LOCK:
             RVOL_CACHE[symbol] = baseline
 
-        print("RVOL baseline ready:", symbol)
+        print(
+            "MAIN RVOL READY:",
+            symbol,
+            "20D:",
+            len(old_days)
+        )
 
     except Exception as e:
-        print("RVOL baseline error:", symbol, e)
+        print(
+            "RVOL baseline error:",
+            symbol,
+            e
+        )
 def now_ist():
     return datetime.now(IST)
 
