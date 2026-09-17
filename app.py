@@ -82,32 +82,24 @@ def market_status():
 
 def load_fno_tokens():
     global FNO_TOKENS
-
     try:
         print("Loading Angel One F&O instrument master...")
-
         response = requests.get(INSTRUMENT_URL, timeout=30)
         data = response.json()
-
         wanted = {s.upper() for stocks in SECTORS.values() for s in stocks}
         found = {}
-
         for item in data:
             if item.get("exch_seg") != "NFO":
                 continue
-
             name = str(item.get("name", "")).upper()
-
             if name in wanted:
                 found[name] = str(item.get("token"))
-
         with LOCK:
             FNO_TOKENS = found
-
         print("F&O tokens loaded:", len(FNO_TOKENS))
-
     except Exception as e:
         print("F&O token loading error:", e)
+
 # ============================================================
 # ANGEL ONE LOGIN
 # ============================================================
