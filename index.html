@@ -1,1 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
+<title>F&O SECTOR LEADER</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#07111f;
+  color:#edf5ff;
+  font-family:Arial,sans-serif;
+}
+
+.app{
+  max-width:520px;
+  margin:auto;
+  padding:14px;
+}
+
+.header{
+  text-align:center;
+  padding:10px 0 16px;
+}
+
+.title{
+  font-size:25px;
+  font-weight:800;
+  letter-spacing:.5px;
+}
+
+.sub{
+  color:#8fa4bb;
+  font-size:12px;
+  margin-top:5px;
+}
+
+.status{
+  display:flex;
+  justify-content:center;
+  gap:7px;
+  margin-top:10px;
+  font-size:12px;
+}
+
+.dot{
+  width:8px;
+  height:8px;
+  background:#22c55e;
+  border-radius:50%;
+  margin-top:2px;
+}
+
+.card{
+  background:#0d1b2d;
+  border:1px solid #19314b;
+  border-radius:16px;
+  padding:15px;
+  margin-bottom:13px;
+}
+
+.label{
+  color:#8fa4bb;
+  font-size:11px;
+  margin-bottom:7px;
+  text-transform:uppercase;
+}
+
+select{
+  width:100%;
+  padding:13px;
+  border-radius:11px;
+  border:1px solid #28425d;
+  background:#11243a;
+  color:#fff;
+  font-size:15px;
+  outline:none;
+}
+
+.sectorHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.sectorName{
+  font-size:20px;
+  font-weight:800;
+}
+
+.move{
+  font-size:20px;
+  font-weight:800;
+}
+
+.green{
+  color:#22c55e;
+}
+
+.red{
+  color:#ef4444;
+}
+
+.neutral{
+  color:#facc15;
+}
+
+.rank{
+  display:flex;
+  justify-content:space-between;
+  padding:11px 0;
+  border-bottom:1px solid #19314b;
+  font-size:14px;
+}
+
+.rank:last-child{
+  border-bottom:0;
+}
+
+.stock{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:center;
+}
+
+.stockName{
+  font-weight:700;
+  font-size:16px;
+}
+
+.stockMeta{
+  color:#8fa4bb;
+  font-size:11px;
+  margin-top:4px;
+}
+
+.signal{
+  text-align:right;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:7px;
+  font-size:11px;
+  font-weight:800;
+}
+
+.buy{
+  background:#123b2a;
+  color:#22c55e;
+}
+
+.sell{
+  background:#421b22;
+  color:#ef4444;
+}
+
+.wait{
+  background:#3b3210;
+  color:#facc15;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 0;
+  border-bottom:1px solid #19314b;
+}
+
+.row:last-child{
+  border-bottom:0;
+}
+
+.small{
+  color:#8fa4bb;
+  font-size:11px;
+}
+
+.value{
+  font-weight:700;
+}
+
+.footer{
+  text-align:center;
+  color:#61758b;
+  font-size:10px;
+  padding:5px 0 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="title">F&O SECTOR LEADER</div>
+    <div class="sub">5M Intraday • Today Only • 09:15 Reset</div>
+
+    <div class="status">
+      <span class="dot"></span>
+      <span id="statusText">Backend not connected</span>
+    </div>
+  </div>
+
+
+  <!-- SECTOR SELECTOR -->
+  <div class="card">
+
+    <div class="label">Select Sector</div>
+
+    <select id="sectorSelect" onchange="changeSector()">
+
+      <option>DEFENCE</option>
+      <option>IT</option>
+      <option>PHARMA</option>
+      <option selected>BANKING</option>
+      <option>FINANCIAL 1</option>
+      <option>FINANCIAL 2</option>
+      <option>AUTO</option>
+      <option>REALTY</option>
+      <option>CEMENT</option>
+      <option>ENERGY 1</option>
+      <option>ENERGY 2</option>
+      <option>FMCG</option>
+      <option>CHEMICAL</option>
+      <option>CAPITAL GOODS</option>
+      <option>TELECOM</option>
+      <option>CONSUMER</option>
+
+    </select>
+
+  </div>
+
+
+  <!-- SECTOR LEADER -->
+  <div class="card">
+
+    <div class="label">Today's Sector Leader</div>
+
+    <div class="sectorHead">
+
+      <div>
+        <div class="sectorName" id="sectorName">
+          BANKING
+        </div>
+
+        <div class="small">
+          Live sector movement
+        </div>
+      </div>
+
+      <div class="move green" id="sectorMove">
+        +0.00%
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- LEADER STOCK -->
+  <div class="card">
+
+    <div class="label">Leader Stock</div>
+
+    <div class="stock">
+
+      <div>
+        <div class="stockName" id="leaderStock">
+          —
+        </div>
+
+        <div class="stockMeta" id="leaderMeta">
+          Waiting for live data
+        </div>
+      </div>
+
+      <div class="signal">
+        <div class="badge wait" id="leaderSignal">
+          WAIT
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- STOCK DATA -->
+  <div class="card">
+
+    <div class="label">Sector Stocks</div>
+
+    <div id="stockList">
+
+      <div class="row">
+        <div>
+          <div class="stockName">Waiting...</div>
+          <div class="small">Angel One live data</div>
+        </div>
+
+        <div class="value">—</div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- SECTOR RANKING -->
+  <div class="card">
+
+    <div class="label">Sector Ranking</div>
+
+    <div id="ranking">
+
+      <div class="rank">
+        <span>Waiting for live data</span>
+        <span>—</span>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="footer">
+    F&O Sector Leader • Live Angel One backend
+  </div>
+
+</div>
+
+
+<script>
+
+const API_BASE = "";
+
+let currentSector = "BANKING";
+
+
+function changeSector(){
+
+  currentSector =
+    document.getElementById("sectorSelect").value;
+
+  document.getElementById("sectorName").innerText =
+    currentSector;
+
+  loadSector();
+
+}
+
+
+async function loadSector(){
+
+  try{
+
+    const response =
+      await fetch(
+        API_BASE +
+        "/api/sector/" +
+        encodeURIComponent(currentSector)
+      );
+
+    if(!response.ok){
+      throw new Error("Backend unavailable");
+    }
+
+    const data = await response.json();
+
+    updateSector(data);
+
+    document.getElementById("statusText").innerText =
+      "Live backend connected";
+
+  }
+
+  catch(error){
+
+    document.getElementById("statusText").innerText =
+      "Backend not connected";
+
+  }
+
+}
+
+
+function updateSector(data){
+
+  if(!data) return;
+
+
+  if(data.sector_move !== undefined){
+
+    const move =
+      Number(data.sector_move);
+
+    const el =
+      document.getElementById("sectorMove");
+
+    el.innerText =
+      (move >= 0 ? "+" : "") +
+      move.toFixed(2) +
+      "%";
+
+    el.className =
+      "move " +
+      (move > 0 ? "green" :
+       move < 0 ? "red" :
+       "neutral");
+
+  }
+
+
+  if(data.leader){
+
+    document.getElementById("leaderStock").innerText =
+      data.leader.symbol || "—";
+
+    document.getElementById("leaderMeta").innerText =
+      "Live F&O leader";
+
+    const signal =
+      data.leader.signal || "WAIT";
+
+    const signalEl =
+      document.getElementById("leaderSignal");
+
+    signalEl.innerText = signal;
+
+    signalEl.className =
+      "badge " +
+      (signal === "BUY" ? "buy" :
+       signal === "SELL" ? "sell" :
+       "wait");
+
+  }
+
+
+  if(Array.isArray(data.stocks)){
+
+    const list =
+      document.getElementById("stockList");
+
+    list.innerHTML = "";
+
+    data.stocks.forEach(stock => {
+
+      const move =
+        Number(stock.move || 0);
+
+      const signal =
+        stock.signal || "WAIT";
+
+      const row =
+        document.createElement("div");
+
+      row.className = "row";
+
+      row.innerHTML = `
+
+        <div>
+          <div class="stockName">
+            ${stock.symbol || "—"}
+          </div>
+
+          <div class="small">
+            LTP: ${stock.ltp ?? "—"}
+            &nbsp; | &nbsp;
+            RVOL: ${stock.rvol ?? "—"}
+          </div>
+        </div>
+
+        <div class="signal">
+
+          <div class="${
+            move >= 0
+            ? "green"
+            : "red"
+          }">
+            ${move >= 0 ? "+" : ""}
+            ${move.toFixed(2)}%
+          </div>
+
+          <div class="badge ${
+            signal === "BUY"
+            ? "buy"
+            : signal === "SELL"
+            ? "sell"
+            : "wait"
+          }">
+            ${signal}
+          </div>
+
+        </div>
+
+      `;
+
+      list.appendChild(row);
+
+    });
+
+  }
+
+}
+
+
+async function loadRanking(){
+
+  try{
+
+    const response =
+      await fetch(
+        API_BASE + "/api/sectors"
+      );
+
+    if(!response.ok){
+      return;
+    }
+
+    const data =
+      await response.json();
+
+    if(!Array.isArray(data)){
+      return;
+    }
+
+    const ranking =
+      document.getElementById("ranking");
+
+    ranking.innerHTML = "";
+
+    data.forEach((sector,index) => {
+
+      const row =
+        document.createElement("div");
+
+      row.className = "rank";
+
+      row.innerHTML = `
+
+        <span>
+          ${index + 1}. ${sector.name}
+        </span>
+
+        <span class="${
+          Number(sector.move) >= 0
+          ? "green"
+          : "red"
+        }">
+
+          ${
+            Number(sector.move) >= 0
+            ? "+"
+            : ""
+          }${Number(sector.move || 0).toFixed(2)}%
+
+        </span>
+
+      `;
+
+      ranking.appendChild(row);
+
+    });
+
+  }
+
+  catch(error){
+
+    // Backend not connected yet
+
+  }
+
+}
+
+
+/* Initial load */
+
+loadSector();
+loadRanking();
+
+
+/* Refresh every 5 seconds */
+
+setInterval(() => {
+
+  loadSector();
+  loadRanking();
+
+},5000);
+
+</script>
+
+</body>
+</html>
