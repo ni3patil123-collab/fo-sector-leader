@@ -104,8 +104,8 @@ def market_status():
 
                 print("F&O tokens loaded:", len(FNO_TOKENS))
 
-    except Exception as e:
-        print("F&O token loading error:", e)
+        except Exception as e:
+                print("F&O token loading error:", e)
 # ============================================================
 # ANGEL ONE LOGIN
 # ============================================================
