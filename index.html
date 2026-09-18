@@ -422,27 +422,65 @@ function updateSector(data){
   }
 
 
+  /* LEADER STOCK FIX */
+
   if(data.leader){
 
+    const leaderSymbol =
+      typeof data.leader === "string"
+      ? data.leader
+      : data.leader.symbol;
+
+    const leaderSignal =
+      data.leader_signal ||
+      (typeof data.leader === "object"
+        ? data.leader.signal
+        : "WAIT") ||
+      "WAIT";
+
     document.getElementById("leaderStock").innerText =
-      data.leader.symbol || "—";
+      leaderSymbol || "—";
 
     document.getElementById("leaderMeta").innerText =
       "Live F&O leader";
 
-    const signal =
-      data.leader.signal || "WAIT";
+    const signalEl =
+      document.getElementById("leaderSignal");
+
+    signalEl.innerText =
+      leaderSignal;
+
+    signalEl.className =
+      "badge " +
+      (leaderSignal === "BUY" ? "buy" :
+       leaderSignal === "SELL" ? "sell" :
+       "wait");
+
+  }
+
+  else{
+
+    document.getElementById("leaderStock").innerText =
+      "—";
+
+    document.getElementById("leaderMeta").innerText =
+      "Waiting for active signal";
 
     const signalEl =
       document.getElementById("leaderSignal");
 
-    signalEl.innerText = signal;
+    signalEl.innerText =
+      data.leader_signal || "WAIT";
 
     signalEl.className =
       "badge " +
-      (signal === "BUY" ? "buy" :
-       signal === "SELL" ? "sell" :
-       "wait");
+      (
+        data.leader_signal === "BUY"
+        ? "buy"
+        : data.leader_signal === "SELL"
+        ? "sell"
+        : "wait"
+      );
 
   }
 
@@ -547,10 +585,17 @@ async function loadRanking(){
 
       row.className = "rank";
 
+      /* SECTOR NAME FIX */
+
+      const sectorName =
+        sector.sector ||
+        sector.name ||
+        "—";
+
       row.innerHTML = `
 
         <span>
-          ${index + 1}. ${sector.name}
+          ${index + 1}. ${sectorName}
         </span>
 
         <span class="${
