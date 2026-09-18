@@ -61,109 +61,123 @@ RVOL_CACHE = {}
 RVOL_LOCK = threading.Lock()
 def fetch_20d_rvol_baseline(symbol, token):
     try:
-        end = now_ist()
-        start = end - timedelta(days=35)
+        today = now_ist().date()
 
-        result = smart_api.getCandleData({
+        # मागील 40 calendar days मधून previous 20 trading days
+        start_date = today - timedelta(days=40)
+
+        response = smart_api.getCandleData({
             "exchange": "NFO",
             "symboltoken": str(token),
             "interval": "FIVE_MINUTE",
-            "fromdate": start.strftime("%Y-%m-%d 09:15"),
-            "todate": end.strftime("%Y-%m-%d %H:%M")
+            "fromdate": start_date.strftime("%Y-%m-%d") + " 09:15",
+            "todate": today.strftime("%Y-%m-%d") + " 15:30"
         })
 
-        if not result or not result.get("status"):
+        if not response or not response.get("status"):
             print("RVOL history failed:", symbol)
-            return
+            return False
 
-        rows = result.get("data") or []
-        days = {}
+        candles = response.get("data") or []
 
-        for row in rows:
+        if not candles:
+            print("RVOL no historical data:", symbol)
+            return False
+
+        # day -> HH:MM -> 5M volume
+        daily = {}
+
+        for row in candles:
             if len(row) < 6:
                 continue
 
-            ts = datetime.fromisoformat(
-                str(row[0]).replace("Z", "+00:00")
-            )
+            try:
+                ts = datetime.fromisoformat(
+                    str(row[0]).replace("Z", "+00:00")
+                )
+            except Exception:
+                continue
 
             if ts.tzinfo is None:
                 ts = ts.replace(tzinfo=IST)
             else:
                 ts = ts.astimezone(IST)
 
+            day = ts.date()
+
+            # आजचा data baseline मध्ये अजिबात नको
+            if day >= today:
+                continue
+
             if ts.weekday() >= 5:
                 continue
 
-            if ts.hour < 9 or (
-                ts.hour == 9 and ts.minute < 15
-            ):
-                continue
+            hhmm = ts.strftime("%H:%M")
 
-            key = f"{ts.hour:02d}:{(ts.minute // 5) * 5:02d}"
-            day = ts.date()
-            vol = float(row[5] or 0)
+            try:
+                volume = float(row[5] or 0)
+            except Exception:
+                volume = 0.0
 
-            days.setdefault(day, [])
-            days[day].append((key, vol))
+            daily.setdefault(day, {})
+            daily[day][hhmm] = volume
 
-        today = now_ist().date()
+        # फक्त previous 20 trading days
+        trading_days = sorted(daily.keys())[-20:]
 
-        old_days = sorted(
-            d for d in days if d < today
-        )[-20:]
-
-        if len(old_days) < 20:
+        if len(trading_days) < 20:
             print(
-                "RVOL needs 20 days:",
+                "RVOL needs 20 trading days:",
                 symbol,
-                len(old_days)
+                "found:",
+                len(trading_days)
             )
-            return
+            return False
 
+        # प्रत्येक दिवसासाठी 09:15 पासून cumulative volume
+        same_time_values = {}
+
+        for day in trading_days:
+            running_volume = 0.0
+
+            for hhmm in sorted(daily[day].keys()):
+                running_volume += daily[day][hhmm]
+
+                same_time_values.setdefault(
+                    hhmm,
+                    []
+                )
+
+                same_time_values[hhmm].append(
+                    running_volume
+                )
+
+        # Previous 20 days च्या same HH:MM cumulative
+        # volume ची average
         baseline = {}
 
-        for day in old_days:
-            running = 0
+        for hhmm, values in same_time_values.items():
 
-            for key, vol in sorted(days[day]):
-                running += vol
-                days[day] = [
-                    x for x in days[day]
-                    if x[0] != key
-                ]
-                days[day].append((key, running))
+            if len(values) < 20:
+                continue
 
-        slots = set()
-
-        for day in old_days:
-            slots.update(
-                key for key, _ in days[day]
+            baseline[hhmm] = (
+                sum(values) / len(values)
             )
-
-        for key in slots:
-            values = []
-
-            for day in old_days:
-                for k, value in days[day]:
-                    if k == key:
-                        values.append(value)
-                        break
-
-            if len(values) >= 15:
-                baseline[key] = (
-                    sum(values) / len(values)
-                )
 
         with RVOL_LOCK:
             RVOL_CACHE[symbol] = baseline
 
         print(
-            "MAIN RVOL READY:",
+            "20D SAME-TIME CUMULATIVE RVOL READY:",
             symbol,
-            "20D:",
-            len(old_days)
+            "days:",
+            len(trading_days),
+            "slots:",
+            len(baseline)
         )
+
+        return True
 
     except Exception as e:
         print(
@@ -171,6 +185,7 @@ def fetch_20d_rvol_baseline(symbol, token):
             symbol,
             e
         )
+        return False
 def now_ist():
     return datetime.now(IST)
 
